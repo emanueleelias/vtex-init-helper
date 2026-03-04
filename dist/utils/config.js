@@ -6,8 +6,8 @@ const config = new Conf({
         jiraEmail: { type: 'string' },
         jiraToken: { type: 'string' },
         bitbucketWorkspace: { type: 'string' },
-        bitbucketUsername: { type: 'string' },
-        bitbucketAppPassword: { type: 'string' },
+        bitbucketEmail: { type: 'string' },
+        bitbucketApiToken: { type: 'string' },
     },
 });
 /**

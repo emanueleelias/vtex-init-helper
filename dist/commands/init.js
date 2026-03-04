@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
 import AutocompletePrompt from 'inquirer-autocomplete-prompt';
-import { mkdirSync, existsSync } from 'node:fs';
+import { mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { getConfig } from '../utils/config.js';
 import { suggestBranchName, generateWorkspaceName } from '../utils/branch.js';
@@ -153,11 +153,28 @@ export async function initCommand(ticketId) {
     }
     // ─── 8. Entorno VTEX ───
     console.log(chalk.dim('\n── Configuración VTEX ──\n'));
+    // Intentar detectar vendor desde manifest.json
+    let detectedVendor;
+    const manifestPath = resolve(projectDir, 'manifest.json');
+    if (existsSync(manifestPath)) {
+        try {
+            const manifestRaw = readFileSync(manifestPath, 'utf-8');
+            const manifest = JSON.parse(manifestRaw);
+            if (manifest.vendor && typeof manifest.vendor === 'string') {
+                detectedVendor = manifest.vendor;
+                console.log(chalk.green(`✔ Vendor detectado desde manifest.json: ${chalk.bold(detectedVendor)}`));
+            }
+        }
+        catch {
+            // Si falla la lectura/parseo, seguir con prompt manual
+        }
+    }
     const { vendor } = await inquirer.prompt([
         {
             type: 'input',
             name: 'vendor',
             message: 'Nombre del Vendor (tienda) en VTEX:',
+            default: detectedVendor,
             validate: (input) => input.trim().length > 0 || 'El vendor es obligatorio',
         },
     ]);

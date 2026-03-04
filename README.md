@@ -34,7 +34,7 @@ vtex-init config
 
 Se solicitarán:
 - Dominio de Jira, email y API Token
-- Workspace de Bitbucket, username y App Password
+- Workspace de Bitbucket y API Token
 
 ### 2. Iniciar una tarea
 
@@ -75,7 +75,7 @@ Las credenciales se almacenan en `~/.config/vtex-init-helper/config.json`.
 - VTEX Toolbelt instalado globalmente (`vtex`)
 - Git
 - Cuenta de Jira con API Token
-- Cuenta de Bitbucket con App Password
+- Cuenta de Bitbucket con API Token (con scope `repository:write`)
 
 ## Desarrollo
 

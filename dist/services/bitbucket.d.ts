@@ -10,7 +10,7 @@ export interface BitbucketRepo {
 export declare function getRepositories(): Promise<BitbucketRepo[]>;
 /**
  * Crea una rama en un repositorio de Bitbucket.
- * Intenta desde `main`, si falla prueba `master`, si falla pregunta al usuario.
+ * Intenta desde `main`, si falla prueba `master`, si falla retorna '' para que el caller pregunte.
  */
 export declare function createBranch(repoSlug: string, branchName: string): Promise<string>;
 /**

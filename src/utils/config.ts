@@ -5,8 +5,8 @@ export interface AppConfig {
     jiraEmail: string;
     jiraToken: string;
     bitbucketWorkspace: string;
-    bitbucketUsername: string;
-    bitbucketAppPassword: string;
+    bitbucketEmail: string;
+    bitbucketApiToken: string;
 }
 
 const config = new Conf<AppConfig>({
@@ -16,8 +16,8 @@ const config = new Conf<AppConfig>({
         jiraEmail: { type: 'string' },
         jiraToken: { type: 'string' },
         bitbucketWorkspace: { type: 'string' },
-        bitbucketUsername: { type: 'string' },
-        bitbucketAppPassword: { type: 'string' },
+        bitbucketEmail: { type: 'string' },
+        bitbucketApiToken: { type: 'string' },
     },
 });
 

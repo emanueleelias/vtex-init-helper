@@ -4,8 +4,8 @@ export interface AppConfig {
     jiraEmail: string;
     jiraToken: string;
     bitbucketWorkspace: string;
-    bitbucketUsername: string;
-    bitbucketAppPassword: string;
+    bitbucketEmail: string;
+    bitbucketApiToken: string;
 }
 declare const config: Conf<AppConfig>;
 /**

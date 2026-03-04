@@ -49,29 +49,28 @@ export async function configCommand(): Promise<void> {
         },
         {
             type: 'input',
-            name: 'bitbucketUsername',
-            message: 'Username de Bitbucket:',
-            default: config.get('bitbucketUsername') || undefined,
+            name: 'bitbucketEmail',
+            message: 'Email de Bitbucket:',
+            default: config.get('bitbucketEmail') || undefined,
             validate: (input: string) =>
-                input.trim().length > 0 || 'El username es obligatorio',
+                input.includes('@') || 'Ingresá un email válido',
         },
         {
             type: 'password',
-            name: 'bitbucketAppPassword',
-            message: 'App Password de Bitbucket:',
+            name: 'bitbucketApiToken',
+            message: 'API Token de Bitbucket:',
             mask: '*',
             validate: (input: string) =>
-                input.trim().length > 0 || 'El app password es obligatorio',
+                input.trim().length > 0 || 'El API token es obligatorio',
         },
     ]);
-
     // Guardar todo en conf
     config.set('jiraDomain', jiraAnswers.jiraDomain.trim());
     config.set('jiraEmail', jiraAnswers.jiraEmail.trim());
     config.set('jiraToken', jiraAnswers.jiraToken.trim());
     config.set('bitbucketWorkspace', bbAnswers.bitbucketWorkspace.trim());
-    config.set('bitbucketUsername', bbAnswers.bitbucketUsername.trim());
-    config.set('bitbucketAppPassword', bbAnswers.bitbucketAppPassword.trim());
+    config.set('bitbucketEmail', bbAnswers.bitbucketEmail.trim());
+    config.set('bitbucketApiToken', bbAnswers.bitbucketApiToken.trim());
 
     console.log(
         chalk.green('\n✅ Configuración guardada exitosamente.')

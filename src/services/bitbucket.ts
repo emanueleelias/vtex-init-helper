@@ -8,16 +8,21 @@ export interface BitbucketRepo {
 }
 
 /**
+ * Genera el header de autenticación Basic para Bitbucket.
+ * Los nuevos API tokens de Bitbucket usan Basic Auth con email:token.
+ */
+function getAuthHeader(): string {
+    const { bitbucketEmail, bitbucketApiToken } = getConfig();
+    const auth = Buffer.from(`${bitbucketEmail}:${bitbucketApiToken}`).toString('base64');
+    return `Basic ${auth}`;
+}
+
+/**
  * Obtiene todos los repositorios del workspace de Bitbucket.
  * Maneja paginación automáticamente.
  */
 export async function getRepositories(): Promise<BitbucketRepo[]> {
-    const { bitbucketWorkspace, bitbucketUsername, bitbucketAppPassword } =
-        getConfig();
-
-    const auth = Buffer.from(
-        `${bitbucketUsername}:${bitbucketAppPassword}`
-    ).toString('base64');
+    const { bitbucketWorkspace } = getConfig();
 
     const repos: BitbucketRepo[] = [];
     let url: string | null =
@@ -27,21 +32,20 @@ export async function getRepositories(): Promise<BitbucketRepo[]> {
         try {
             const response: { data: any } = await axios.get(url, {
                 headers: {
-                    Authorization: `Basic ${auth}`,
+                    Authorization: getAuthHeader(),
                     Accept: 'application/json',
                 },
             });
 
             for (const repo of response.data.values) {
-                // Buscar la URL de clonación HTTPS
-                const httpsClone = repo.links?.clone?.find(
-                    (c: any) => c.name === 'https'
+                const sshClone = repo.links?.clone?.find(
+                    (c: any) => c.name === 'ssh'
                 );
 
                 repos.push({
                     name: repo.name,
                     slug: repo.slug,
-                    cloneUrl: httpsClone?.href || '',
+                    cloneUrl: sshClone?.href || '',
                 });
             }
 
@@ -52,40 +56,38 @@ export async function getRepositories(): Promise<BitbucketRepo[]> {
                     'Credenciales de Bitbucket inválidas. Ejecutá "vtex-init config" para reconfigurar.'
                 );
             }
+            if (error.response?.status === 403) {
+                throw new Error(
+                    'Permisos insuficientes. El API Token necesita los scopes "repository:read" y "repository:write". Creá un nuevo token con esos permisos.'
+                );
+            }
             throw new Error(
                 `Error al obtener repositorios de Bitbucket: ${error.message}`
             );
         }
     }
 
-    // Ordenar alfabéticamente por nombre
     return repos.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
  * Crea una rama en un repositorio de Bitbucket.
- * Intenta desde `main`, si falla prueba `master`, si falla pregunta al usuario.
+ * Intenta desde `main`, si falla prueba `master`, si falla retorna '' para que el caller pregunte.
  */
 export async function createBranch(
     repoSlug: string,
     branchName: string
 ): Promise<string> {
-    const { bitbucketWorkspace, bitbucketUsername, bitbucketAppPassword } =
-        getConfig();
-
-    const auth = Buffer.from(
-        `${bitbucketUsername}:${bitbucketAppPassword}`
-    ).toString('base64');
+    const { bitbucketWorkspace } = getConfig();
 
     const apiUrl = `https://api.bitbucket.org/2.0/repositories/${bitbucketWorkspace}/${repoSlug}/refs/branches`;
 
     const headers = {
-        Authorization: `Basic ${auth}`,
+        Authorization: getAuthHeader(),
         'Content-Type': 'application/json',
         Accept: 'application/json',
     };
 
-    // Intentar con main, luego master
     const candidates = ['main', 'master'];
 
     for (const source of candidates) {
@@ -101,18 +103,15 @@ export async function createBranch(
             return source;
         } catch (error: any) {
             const status = error.response?.status;
-            // Si es 404 o error de rama no encontrada, probar la siguiente
             if (status === 404 || status === 400) {
                 continue;
             }
-            // Cualquier otro error, lanzar
             throw new Error(
                 `Error al crear rama en Bitbucket: ${error.response?.data?.error?.message || error.message}`
             );
         }
     }
 
-    // Si ninguna candidata funcionó, retornar null para que el caller pregunte
     return '';
 }
 
@@ -124,12 +123,7 @@ export async function createBranchFrom(
     branchName: string,
     sourceBranch: string
 ): Promise<void> {
-    const { bitbucketWorkspace, bitbucketUsername, bitbucketAppPassword } =
-        getConfig();
-
-    const auth = Buffer.from(
-        `${bitbucketUsername}:${bitbucketAppPassword}`
-    ).toString('base64');
+    const { bitbucketWorkspace } = getConfig();
 
     const apiUrl = `https://api.bitbucket.org/2.0/repositories/${bitbucketWorkspace}/${repoSlug}/refs/branches`;
 
@@ -142,7 +136,7 @@ export async function createBranchFrom(
             },
             {
                 headers: {
-                    Authorization: `Basic ${auth}`,
+                    Authorization: getAuthHeader(),
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
                 },
