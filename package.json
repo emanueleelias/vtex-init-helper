@@ -4,7 +4,7 @@
   "description": "CLI tool to automate VTEX task initialization from Jira tickets",
   "main": "./dist/index.js",
   "bin": {
-    "vtex-init": "./dist/index.js"
+    "vtex-init": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
