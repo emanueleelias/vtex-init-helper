@@ -76,6 +76,9 @@ export async function configCommand(): Promise<void> {
         chalk.green('\n✅ Configuración guardada exitosamente.')
     );
     console.log(
-        chalk.dim(`   Ubicación: ${config.path}\n`)
+        chalk.dim(`   Ubicación: ${config.path}`)
+    );
+    console.log(
+        chalk.dim('   🔒 Las credenciales se almacenan cifradas (AES-256)\n')
     );
 }

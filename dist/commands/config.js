@@ -59,6 +59,7 @@ export async function configCommand() {
     config.set('bitbucketEmail', bbAnswers.bitbucketEmail.trim());
     config.set('bitbucketApiToken', bbAnswers.bitbucketApiToken.trim());
     console.log(chalk.green('\n✅ Configuración guardada exitosamente.'));
-    console.log(chalk.dim(`   Ubicación: ${config.path}\n`));
+    console.log(chalk.dim(`   Ubicación: ${config.path}`));
+    console.log(chalk.dim('   🔒 Las credenciales se almacenan cifradas (AES-256)\n'));
 }
 //# sourceMappingURL=config.js.map

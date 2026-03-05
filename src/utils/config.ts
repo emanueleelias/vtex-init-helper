@@ -1,4 +1,5 @@
 import Conf from 'conf';
+import { getMachineKey } from './crypto.js';
 
 export interface AppConfig {
     jiraDomain: string;
@@ -11,6 +12,7 @@ export interface AppConfig {
 
 const config = new Conf<AppConfig>({
     projectName: 'vtex-init-helper',
+    encryptionKey: getMachineKey(),
     schema: {
         jiraDomain: { type: 'string' },
         jiraEmail: { type: 'string' },

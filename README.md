@@ -14,7 +14,7 @@ CLI para automatizar el inicio de tareas VTEX desde tickets de Jira.
 ## Instalación
 
 ```bash
-npm install -g .
+npm install -g vtex-init-helper
 ```
 
 O para desarrollo:
@@ -39,7 +39,7 @@ Se solicitarán:
 ### 2. Iniciar una tarea
 
 ```bash
-vtex-init ONIL-558
+vtex-init TAREA-001
 ```
 
 El CLI te guiará paso a paso a través de todo el flujo.
@@ -57,17 +57,31 @@ src/
 │   └── bitbucket.ts      # API de Bitbucket
 └── utils/
     ├── config.ts         # Manejo de configuración (conf)
+    ├── crypto.ts         # Cifrado de credenciales (AES-256)
     ├── branch.ts         # Generación de nombres de rama
     └── shell.ts          # Wrappers de execSync
 ```
 
-## Configuración
+## Seguridad
 
-Las credenciales se almacenan en `~/.config/vtex-init-helper/config.json`.
+Las credenciales se almacenan **cifradas** en `~/.config/vtex-init-helper/config.json` usando **AES-256-CBC**.
 
-> ⚠️ **Nota de seguridad**: Actualmente las credenciales se almacenan en texto plano.
-> En una versión futura se planea implementar cifrado de credenciales (ej. con `keytar`
-> o cifrado AES con master password). Para el MVP esto es aceptable.
+### ¿Cómo funciona?
+
+1. Se genera una **clave de cifrado única** para cada máquina y usuario, derivada de:
+   - Hostname del equipo
+   - Nombre de usuario del sistema operativo
+   - Plataforma (win32, linux, darwin)
+   - Directorio home del usuario
+2. Estos datos se combinan y se procesan con **PBKDF2** (100.000 iteraciones, SHA-512) para producir una clave AES-256 segura.
+3. La librería `conf` usa esta clave para cifrar/descifrar los datos de forma transparente.
+
+### Garantías
+
+- 🔒 Las credenciales **nunca se almacenan en texto plano**
+- 🖥️ La configuración está **atada a la máquina**: copiar el archivo a otro equipo no permite leerlo
+- 📦 **Sin dependencias externas**: usa únicamente `node:crypto` y `node:os` (built-in de Node.js)
+- 🪟 **Cross-platform**: funciona en Windows, macOS y Linux sin compilación nativa
 
 ## Requisitos
 

@@ -1,6 +1,8 @@
 import Conf from 'conf';
+import { getMachineKey } from './crypto.js';
 const config = new Conf({
     projectName: 'vtex-init-helper',
+    encryptionKey: getMachineKey(),
     schema: {
         jiraDomain: { type: 'string' },
         jiraEmail: { type: 'string' },
