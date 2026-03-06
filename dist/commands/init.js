@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
 import { getConfig } from '../utils/config.js';
 import { suggestBranchName, generateWorkspaceName } from '../utils/branch.js';
 import { exec } from '../utils/shell.js';
-import { getIssue } from '../services/jira.js';
+import { getIssue, addRemoteLink } from '../services/jira.js';
 import { getRepositories, createBranch, createBranchFrom, } from '../services/bitbucket.js';
 // Registrar plugin de autocomplete
 inquirer.registerPrompt('autocomplete', AutocompletePrompt);
@@ -113,9 +113,10 @@ export async function initCommand(ticketId) {
         process.exit(1);
     }
     // ─── 7. Clonar repositorio localmente ───
-    const projectDir = resolve(process.cwd(), ticketId);
+    const folderName = generateWorkspaceName(ticketId);
+    const projectDir = resolve(process.cwd(), folderName);
     if (existsSync(projectDir)) {
-        console.log(chalk.yellow(`\n⚠️  La carpeta "${ticketId}" ya existe.`));
+        console.log(chalk.yellow(`\n⚠️  La carpeta "${folderName}" ya existe.`));
         const { overwrite } = await inquirer.prompt([
             {
                 type: 'confirm',
@@ -186,6 +187,17 @@ export async function initCommand(ticketId) {
         exec(`vtex switch ${vendor.trim()}`, projectDir);
         console.log(chalk.dim(`\n→ vtex use ${workspaceName}`));
         exec(`vtex use ${workspaceName}`, projectDir);
+        // ─── Agregar enlace de workspace al ticket de Jira ───
+        const workspaceUrl = `https://${workspaceName}--${vendor.trim()}.myvtex.com`;
+        try {
+            const linkSpinner = ora('Agregando enlace de workspace en Jira...').start();
+            await addRemoteLink(issueKey, workspaceUrl, 'Workspace de prueba');
+            linkSpinner.succeed(`Enlace agregado en Jira: ${chalk.dim(workspaceUrl)}`);
+        }
+        catch (error) {
+            console.log(chalk.yellow(`\n⚠️  No se pudo agregar el enlace en Jira: ${error.message}`));
+            console.log(chalk.dim('   Podés agregarlo manualmente desde el ticket.\n'));
+        }
         console.log(chalk.dim(`\n→ vtex link`));
         exec('vtex link', projectDir);
     }
