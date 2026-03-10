@@ -1,1 +1,3 @@
-export declare function initCommand(ticketId: string): Promise<void>;
+export declare function initCommand(ticketId: string, options?: {
+    dryRun?: boolean;
+}): Promise<void>;

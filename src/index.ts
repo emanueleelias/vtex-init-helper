@@ -22,8 +22,9 @@ program
 
 program
   .argument('<ticketId>', 'ID del ticket de Jira (ej. ONIL-558)')
-  .action(async (ticketId: string) => {
-    await initCommand(ticketId);
+  .option('--dry-run', 'Simular la ejecución sin realizar cambios en repositorios o VTEX')
+  .action(async (ticketId: string, options: any) => {
+    await initCommand(ticketId, options);
   });
 
 program.parse();

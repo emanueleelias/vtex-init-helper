@@ -10,6 +10,7 @@ CLI para automatizar el inicio de tareas VTEX desde tickets de Jira.
 4. **Crea la rama remota** en el repositorio seleccionado.
 5. **Clona el repositorio** y hace checkout a la rama.
 6. **Configura el entorno VTEX** (switch, workspace, link).
+7. **Agrega un enlace web en Jira** apunando al workspace de prueba recién creado.
 
 ## Instalación
 
@@ -43,6 +44,14 @@ vtex-init TAREA-001
 ```
 
 El CLI te guiará paso a paso a través de todo el flujo.
+
+### 3. Modo Simulación (Dry-Run)
+
+Si quieres ver todo el flujo que ejecutaría el comando pero **sin realizar ningún cambio real** (no crea ramas, no clona, no afecta VTEX ni Jira), añade el flag `--dry-run`:
+
+```bash
+vtex-init TAREA-001 --dry-run
+```
 
 ## Estructura del Proyecto
 

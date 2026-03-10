@@ -11,7 +11,8 @@ import { getIssue, addRemoteLink } from '../services/jira.js';
 import { getRepositories, createBranch, createBranchFrom, } from '../services/bitbucket.js';
 // Registrar plugin de autocomplete
 inquirer.registerPrompt('autocomplete', AutocompletePrompt);
-export async function initCommand(ticketId) {
+export async function initCommand(ticketId, options = {}) {
+    const isDryRun = options.dryRun === true;
     // ─── 1. Validar configuración ───
     try {
         getConfig();
@@ -22,6 +23,9 @@ export async function initCommand(ticketId) {
             chalk.cyan('vtex-init config') +
             chalk.yellow(' para configurar las credenciales.\n'));
         process.exit(1);
+    }
+    if (isDryRun) {
+        console.log(chalk.gray('• Modo: DRY-RUN (no se realizarán cambios en repositorios ni VTEX)'));
     }
     console.log(chalk.cyan(`\n🚀 Iniciando tarea ${chalk.bold(ticketId)}\n`));
     // ─── 2. Obtener datos de Jira ───
@@ -80,37 +84,42 @@ export async function initCommand(ticketId) {
     const repo = selectedRepo;
     // ─── 6. Crear rama remota ───
     const branchSpinner = ora('Creando rama remota...').start();
-    try {
-        const sourceBranch = await createBranch(repo.slug, branchName);
-        if (sourceBranch) {
-            branchSpinner.succeed(`Rama ${chalk.bold(branchName)} creada desde ${chalk.dim(sourceBranch)}`);
-        }
-        else {
-            // Ni main ni master funcionaron, preguntar al usuario
-            branchSpinner.warn('No se pudo crear la rama desde "main" ni "master".');
-            const { customSource } = await inquirer.prompt([
-                {
-                    type: 'input',
-                    name: 'customSource',
-                    message: 'Nombre de la rama principal del repositorio:',
-                    default: 'dev',
-                    validate: (input) => input.trim().length > 0 || 'El nombre es obligatorio',
-                },
-            ]);
-            const retrySpinner = ora(`Creando rama desde "${customSource}"...`).start();
-            try {
-                await createBranchFrom(repo.slug, branchName, customSource.trim());
-                retrySpinner.succeed(`Rama ${chalk.bold(branchName)} creada desde ${chalk.dim(customSource)}`);
-            }
-            catch (retryError) {
-                retrySpinner.fail(retryError.message);
-                process.exit(1);
-            }
-        }
+    if (isDryRun) {
+        branchSpinner.succeed(`[dry-run] Creación de rama remota ${chalk.bold(branchName)} omitida`);
     }
-    catch (error) {
-        branchSpinner.fail(error.message);
-        process.exit(1);
+    else {
+        try {
+            const sourceBranch = await createBranch(repo.slug, branchName);
+            if (sourceBranch) {
+                branchSpinner.succeed(`Rama ${chalk.bold(branchName)} creada desde ${chalk.dim(sourceBranch)}`);
+            }
+            else {
+                // Ni main ni master funcionaron, preguntar al usuario
+                branchSpinner.warn('No se pudo crear la rama desde "main" ni "master".');
+                const { customSource } = await inquirer.prompt([
+                    {
+                        type: 'input',
+                        name: 'customSource',
+                        message: 'Nombre de la rama principal del repositorio:',
+                        default: 'dev',
+                        validate: (input) => input.trim().length > 0 || 'El nombre es obligatorio',
+                    },
+                ]);
+                const retrySpinner = ora(`Creando rama desde "${customSource}"...`).start();
+                try {
+                    await createBranchFrom(repo.slug, branchName, customSource.trim());
+                    retrySpinner.succeed(`Rama ${chalk.bold(branchName)} creada desde ${chalk.dim(customSource)}`);
+                }
+                catch (retryError) {
+                    retrySpinner.fail(retryError.message);
+                    process.exit(1);
+                }
+            }
+        }
+        catch (error) {
+            branchSpinner.fail(error.message);
+            process.exit(1);
+        }
     }
     // ─── 7. Clonar repositorio localmente ───
     const folderName = generateWorkspaceName(ticketId);
@@ -131,26 +140,36 @@ export async function initCommand(ticketId) {
         }
     }
     else {
-        mkdirSync(projectDir, { recursive: true });
+        if (!isDryRun) {
+            mkdirSync(projectDir, { recursive: true });
+        }
+        else {
+            console.log(chalk.gray(`  [dry-run] Creación de carpeta "${folderName}" omitida`));
+        }
     }
     console.log('');
     const cloneSpinner = ora('Clonando repositorio...').start();
     cloneSpinner.stop();
-    try {
-        exec(`git clone ${repo.cloneUrl} .`, projectDir);
-        console.log(chalk.green('✔ Repositorio clonado'));
+    if (isDryRun) {
+        console.log(chalk.gray('  [dry-run] git clone y checkout omitidos'));
     }
-    catch (error) {
-        console.log(chalk.red(`✖ Error al clonar: ${error.message}`));
-        process.exit(1);
-    }
-    try {
-        exec(`git checkout ${branchName}`, projectDir);
-        console.log(chalk.green(`✔ Checkout a ${branchName}`));
-    }
-    catch (error) {
-        console.log(chalk.red(`✖ Error en checkout: ${error.message}`));
-        process.exit(1);
+    else {
+        try {
+            exec(`git clone ${repo.cloneUrl} .`, projectDir);
+            console.log(chalk.green('✔ Repositorio clonado'));
+        }
+        catch (error) {
+            console.log(chalk.red(`✖ Error al clonar: ${error.message}`));
+            process.exit(1);
+        }
+        try {
+            exec(`git checkout ${branchName}`, projectDir);
+            console.log(chalk.green(`✔ Checkout a ${branchName}`));
+        }
+        catch (error) {
+            console.log(chalk.red(`✖ Error en checkout: ${error.message}`));
+            process.exit(1);
+        }
     }
     // ─── 8. Entorno VTEX ───
     console.log(chalk.dim('\n── Configuración VTEX ──\n'));
@@ -184,22 +203,42 @@ export async function initCommand(ticketId) {
     // ─── 9. Comandos VTEX ───
     try {
         console.log(chalk.dim(`\n→ vtex switch ${vendor.trim()}`));
-        exec(`vtex switch ${vendor.trim()}`, projectDir);
+        if (!isDryRun) {
+            exec(`vtex switch ${vendor.trim()}`, projectDir);
+        }
+        else {
+            console.log(chalk.gray('  [dry-run] Comando omitido'));
+        }
         console.log(chalk.dim(`\n→ vtex use ${workspaceName}`));
-        exec(`vtex use ${workspaceName}`, projectDir);
+        if (!isDryRun) {
+            exec(`vtex use ${workspaceName}`, projectDir);
+        }
+        else {
+            console.log(chalk.gray('  [dry-run] Comando omitido'));
+        }
         // ─── Agregar enlace de workspace al ticket de Jira ───
         const workspaceUrl = `https://${workspaceName}--${vendor.trim()}.myvtex.com`;
-        try {
-            const linkSpinner = ora('Agregando enlace de workspace en Jira...').start();
-            await addRemoteLink(issueKey, workspaceUrl, 'Workspace de prueba');
-            linkSpinner.succeed(`Enlace agregado en Jira: ${chalk.dim(workspaceUrl)}`);
+        if (isDryRun) {
+            console.log(chalk.gray(`  [dry-run] Enlace de Jira omitido: ${workspaceUrl}`));
         }
-        catch (error) {
-            console.log(chalk.yellow(`\n⚠️  No se pudo agregar el enlace en Jira: ${error.message}`));
-            console.log(chalk.dim('   Podés agregarlo manualmente desde el ticket.\n'));
+        else {
+            try {
+                const linkSpinner = ora('Agregando enlace de workspace en Jira...').start();
+                await addRemoteLink(issueKey, workspaceUrl, 'Workspace de prueba');
+                linkSpinner.succeed(`Enlace agregado en Jira: ${chalk.dim(workspaceUrl)}`);
+            }
+            catch (error) {
+                console.log(chalk.yellow(`\n⚠️  No se pudo agregar el enlace en Jira: ${error.message}`));
+                console.log(chalk.dim('   Podés agregarlo manualmente desde el ticket.\n'));
+            }
         }
         console.log(chalk.dim(`\n→ vtex link`));
-        exec('vtex link', projectDir);
+        if (!isDryRun) {
+            exec('vtex link', projectDir);
+        }
+        else {
+            console.log(chalk.gray('  [dry-run] Comando vtex link omitido.'));
+        }
     }
     catch (error) {
         console.log(chalk.red(`\n✖ Error ejecutando VTEX Toolbelt: ${error.message}`));
