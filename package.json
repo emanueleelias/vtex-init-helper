@@ -1,6 +1,6 @@
 {
   "name": "vtex-init-helper",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "CLI tool to automate VTEX task initialization from Jira tickets",
   "main": "./dist/index.js",
   "bin": {
